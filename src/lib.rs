@@ -3,7 +3,7 @@
 //!
 use std::path::Path;
 use walkdir::{WalkDir};
-mod errors;
+pub mod errors;
 
 const SECS_PER_DAY: u64 = 86400;
 
@@ -21,28 +21,37 @@ pub fn find_matching(
             return Ok(());
         }
 
-    println!("{:?}", start_dir);
+    //println!("{:?}", start_dir);
     for entry in WalkDir::new(start_dir)
             .follow_links(true)
             .into_iter()
             .filter_map(|e| e.ok()) {
 
-        let mut report = false;
+        if !entry.file_type().is_file() { continue; };
+
+        //let mut report = false;
+        let mut meta = "".to_string();
         if access {
-            report = report || report_accessed(&entry, days as u64)?;
+            if report_accessed(&entry, days as u64)? {
+                meta.push('a');
+            }
         }
 
         if create {
-            report = report || report_created(&entry, days as u64)?;
+            if report_created(&entry, days as u64)? {
+                meta.push('c');
+            };
         }
 
         if modify {
-           report = report || report_modified(&entry, days as u64)?;
+           if report_modified(&entry, days as u64)? {
+               meta.push('m');
+           }
         }
 
-        if report {
-            let f_name = entry.file_name().to_string_lossy();
-            println!("{}", f_name);
+        if meta.len() > 0 {
+            let f_name = entry.path().to_string_lossy();
+            println!("{} ({})", f_name, meta);
         }
 
     }
