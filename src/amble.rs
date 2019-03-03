@@ -1,12 +1,16 @@
-use dir_ageism::find_matching;
+use dir_ageism::{find_matching, errors::AmbleError};
 
 
 use std::path::PathBuf;
 use structopt::StructOpt;
 
-/// Traverse a directory recursively, reporting on entities which
+/// Traverse a directory recursively, reporting on files
 /// whose access, modification, and/or creation time falls within a
 /// certain timeframe.
+///
+/// If the user does not specify the metadata
+/// properties of interest, amble will use access, modify, and create
+/// times.
 #[derive(StructOpt, Debug)]
 #[structopt(name = "amble")]
 struct Opt {
@@ -31,7 +35,7 @@ struct Opt {
     verbose: u8,
 
     /// The time period in days in which to consider entities, based
-    /// on the metadata criteria. (ie access time, create time, modify time)
+    /// on the metadata criteria.
     #[structopt(short = "d", long = "days")]
     days: u8,
 
@@ -40,18 +44,24 @@ struct Opt {
     dir: PathBuf,
 }
 
-
-fn main() {
-    let opt = Opt::from_args();
+fn main() -> Result<(), AmbleError>{
+    let mut opt = Opt::from_args();
     if !opt.dir.exists() {
         println!("Warning: '{}' does not exist. Exiting.",
                 opt.dir
                     .into_os_string()
                     .into_string()
                     .unwrap());
-        return;
+        return Ok(());
     }
 
-    //println!("{:?}", opt);
-    find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify);
+    // if the user doesn't specify the metadata of interest, then
+    // it is all of interest.
+    if !(opt.access || opt.create || opt.modify) {
+        opt.access = true;
+        opt.create = true;
+        opt.modify = true;
+    }
+
+    find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify)
 }
