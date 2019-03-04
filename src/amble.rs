@@ -1,4 +1,4 @@
-use dir_ageism::{ traits::Finder, syncwalk::SyncSearch, errors::AmbleError };
+use dir_ageism::{ traits::Finder, syncwalk::SyncSearch, asyncwalk::AsyncSearch, errors::AmbleError };
 
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -28,10 +28,10 @@ struct Opt {
     #[structopt(short = "c", long = "creation")]
     create: bool,
 
-    // // The number of occurrences of the `v/verbose` flag
-    // /// Verbose mode (-v, -vv, -vvv, etc.)
-    // #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
-    // verbose: u8,
+
+    /// Ignore Hidden Directories
+    #[structopt(short = "i", long = "ignore-hidden")]
+    ignore: bool,
 
     /// The time period in days in which to consider entities, based
     /// on the metadata criteria.
@@ -45,6 +45,10 @@ struct Opt {
     /// Files to process
     #[structopt(name = "DIR", parse(from_os_str))]
     dir: PathBuf,
+
+    /// Fallback to using sync processing of directories.
+    #[structopt(long = "sync")]
+    sync: bool,
 }
 
 fn main() -> Result<(), AmbleError>{
@@ -66,5 +70,9 @@ fn main() -> Result<(), AmbleError>{
         opt.modify = true;
     }
 
-    SyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip)
+    if opt.sync {
+        SyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore)
+    } else {
+        AsyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore)
+    }
 }

@@ -38,6 +38,7 @@ impl Finder for SyncSearch {
         create: bool,
         modify: bool,
         skip: &Vec<String>, // list of directory names we want to skip
+        ignore_hidden: bool,// list of directory names we want to skip
     ) -> Result<(), AmbleError> {
         if (access || create || modify) == false {
             println!("No search criteria specified. Must use access, create, or modify");
@@ -62,6 +63,14 @@ impl Finder for SyncSearch {
         };
         // doing this roughly in code above.
         //if !entry.file_type().is_file() { continue; };
+
+        // if we want to ignore hidden files
+        if ignore_hidden {
+            let f_name =  entry.file_name().to_string_lossy();
+            if f_name.starts_with(".") {
+                continue;
+            }
+        }
 
         let mut meta = "".to_string();
         if access {

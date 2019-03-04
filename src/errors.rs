@@ -10,6 +10,12 @@ pub enum AmbleError {
 
     #[fail(display = "WalkDir: {}", _0)]
     WalkDirError (String),
+
+    #[fail(display = "IgnoreError: {}", _0)]
+    IgnoreError (String),
+
+    #[fail(display = "UnexpectedResult: {}", _0)]
+    UnexpectedResult (String),
 }
 
 impl From<std::io::Error> for AmbleError {
@@ -27,6 +33,12 @@ impl From<std::time::SystemTimeError> for AmbleError {
 impl From<walkdir::Error> for AmbleError {
     fn from(error: walkdir::Error) -> Self {
         AmbleError::WalkDirError(error.to_string())
+    }
+}
+
+impl From<ignore::Error> for AmbleError {
+    fn from(error: ignore::Error) -> Self {
+        AmbleError::IgnoreError(error.to_string())
     }
 }
 
