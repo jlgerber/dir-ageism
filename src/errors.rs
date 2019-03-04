@@ -11,8 +11,8 @@ pub enum AmbleError {
     #[fail(display = "WalkDir: {}", _0)]
     WalkDirError (String),
 
-    #[fail(display = "IgnoreError: {}", _0)]
-    IgnoreError (String),
+    #[fail(display = "AsyncWalkDirError: {}", _0)]
+    AsyncWalkDirError (String),
 
     #[fail(display = "UnexpectedResult: {}", _0)]
     UnexpectedResult (String),
@@ -38,7 +38,7 @@ impl From<walkdir::Error> for AmbleError {
 
 impl From<ignore::Error> for AmbleError {
     fn from(error: ignore::Error) -> Self {
-        AmbleError::IgnoreError(error.to_string())
+        AmbleError::AsyncWalkDirError(error.to_string())
     }
 }
 
