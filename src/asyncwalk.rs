@@ -1,5 +1,6 @@
 use ignore::{WalkBuilder,DirEntry, WalkState};
 use crossbeam_channel as channel;
+use colored::*;
 use std::thread;
 
 use crate::traits::Finder;
@@ -25,11 +26,21 @@ impl Finder for AsyncSearch {
             println!("No search criteria specified. Must use access, create, or modify");
             return Ok(());
         }
+        // for stdout
         let (tx, rx) = channel::bounded::<String>(100);
+
+        // for errors
+        let (tex, rex) = channel::bounded::<String>(100);
 
         let stdout_thread = thread::spawn(move || {
             for dent in rx {
                 println!("{}", dent)
+            }
+        });
+
+        let stderr_thread = thread::spawn(move || {
+            for dent in rex {
+                eprintln!("{}", dent.red())
             }
         });
 
@@ -47,6 +58,7 @@ impl Finder for AsyncSearch {
 
         walker.run(|| {
             let tx = tx.clone();
+            let tex = tex.clone();
             let myskip = skip.clone();
             Box::new(move |result| {
                 match process_entry(result, days, access, create, modify, &myskip, ignore_hidden ) {
@@ -55,7 +67,7 @@ impl Finder for AsyncSearch {
                         state
                     },
                     Err(e) => {
-                        tx.send(e.to_string()).unwrap();
+                        tex.send(e.to_string()).unwrap();
                         WalkState::Continue
                     },
                     Ok((state, None))=>{
@@ -66,7 +78,9 @@ impl Finder for AsyncSearch {
         });
 
         drop(tx);
+        drop(tex);
         stdout_thread.join().unwrap();
+        stderr_thread.join().unwrap();
 
         Ok(())
     }
