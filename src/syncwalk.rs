@@ -30,6 +30,15 @@ pub struct SyncSearch {}
 
 use super::traits::Finder;
 
+
+fn is_hidden(entry: &DirEntry, check: bool) -> bool {
+    if !check { return false; }
+
+    entry.file_name()
+         .to_str()
+         .map(|s| s.starts_with("."))
+         .unwrap_or(false)
+}
 impl Finder for SyncSearch {
     fn find_matching(
         start_dir: &Path,
@@ -50,7 +59,7 @@ impl Finder for SyncSearch {
             .into_iter();
 
     for entry in walker
-    .filter_entry(|e| !matches_list(e, skip)) {
+    .filter_entry(|e| !matches_list(e, skip) || is_hidden(e, ignore_hidden)) {
         // filter out errors (like for permissions)
         let entry = match entry {
             Ok(e) => {
@@ -63,14 +72,6 @@ impl Finder for SyncSearch {
         };
         // doing this roughly in code above.
         //if !entry.file_type().is_file() { continue; };
-
-        // if we want to ignore hidden files
-        if ignore_hidden {
-            let f_name =  entry.file_name().to_string_lossy();
-            if f_name.starts_with(".") {
-                continue;
-            }
-        }
 
         let mut meta = "".to_string();
         if access {

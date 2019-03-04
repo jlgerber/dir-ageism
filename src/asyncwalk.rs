@@ -32,7 +32,11 @@ impl Finder for AsyncSearch {
             }
         });
 
-        let walker = WalkBuilder::new(start_dir).hidden(false).threads(0).build_parallel();
+        let walker = WalkBuilder::new(start_dir)
+            .hidden(ignore_hidden)
+            .threads(0)
+            .build_parallel();
+
         walker.run(|| {
             let tx = tx.clone();
             let myskip = skip.clone();
@@ -73,13 +77,14 @@ fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
 
     // filter out directory if its name matches one of the provided
     // names in the skip list.
-    if entry_type.is_dir() && skip.len() > 0 {
-        if matches_list(&entry, &skip) {
+    if entry_type.is_dir() {
+        if  skip.len() > 0 && matches_list(&entry, &skip) {
             return Ok((WalkState::Skip, None));
         }
     } else if entry_type.is_file() {
         let f_name = entry.path().to_string_lossy();
 
+        // do i need this?
         if ignore_hidden {
             let f_name = entry.file_name().to_string_lossy();
             if f_name.starts_with(".") {
