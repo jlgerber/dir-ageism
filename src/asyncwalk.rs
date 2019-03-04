@@ -38,9 +38,19 @@ impl Finder for AsyncSearch {
             }
         });
 
+        // If we want to capture the errors and print them out after
+        // the thread has finished its thing, we could do this
+        // let stderr_thread = thread::spawn(move || -> Vec<String> {
+        //     let mut stderr_result = Vec:: new();
+        //     for dent in rex {
+        //         stderr_result.push(dent);
+        //     }
+        //     stderr_result
+        // });
+
         let stderr_thread = thread::spawn(move || {
             for dent in rex {
-                eprintln!("{}", dent.red())
+                eprintln!("{}", dent.red());
             }
         });
 
@@ -80,7 +90,15 @@ impl Finder for AsyncSearch {
         drop(tx);
         drop(tex);
         stdout_thread.join().unwrap();
-        stderr_thread.join().unwrap();
+        let _err_vals = stderr_thread.join().unwrap();
+
+        // if we wanted to print out errors after the fact, we could do this
+        // if err_vals.len() > 0  {
+        //     println!("{}","\nERRORS\n".red());
+        //     for err in err_vals {
+        //         eprintln!("{}", err.red());
+        //     }
+        // }
 
         Ok(())
     }
