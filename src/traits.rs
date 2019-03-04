@@ -4,7 +4,7 @@ use crate::errors::AmbleError;
 pub trait Finder {
     fn find_matching(
         start_dir: &Path,
-        days: u8,
+        days: f64,
         access: bool,
         create: bool,
         modify: bool,

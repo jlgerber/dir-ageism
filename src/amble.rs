@@ -35,7 +35,7 @@ struct Opt {
     /// The time period in days in which to consider entities, based
     /// on the metadata criteria
     #[structopt(short = "d", long = "days")]
-    days: u8,
+    days: f64,
 
     /// Optional list of directory names to skip
     #[structopt(short = "s", long = "skip")]
@@ -68,6 +68,11 @@ fn main() -> Result<(), AmbleError>{
                     .into_os_string()
                     .into_string()
                     .unwrap());
+        return Ok(());
+    }
+
+    if !(opt.days > 0.001) {
+        println!("Warning: days must be greater than 0: {}.", opt.days);
         return Ok(());
     }
 

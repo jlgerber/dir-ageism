@@ -14,7 +14,7 @@ pub struct AsyncSearch {}
 impl Finder for AsyncSearch {
     fn find_matching(
         start_dir: &Path,
-        days: u8,
+        days: f64,
         access: bool,
         create: bool,
         modify: bool,
@@ -91,7 +91,7 @@ impl Finder for AsyncSearch {
 // If we want to skip an entry, we return Ok wrapping a tuple of WalkState, None.
 // If there is an error, we return an Err wrrapping AmbleError.
 fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
-   days:u8, access: bool, create: bool, modify: bool, skip: &Vec<String>, ignore_hidden: bool,
+   days: f64, access: bool, create: bool, modify: bool, skip: &Vec<String>, ignore_hidden: bool,
 )
 -> Result<(WalkState,Option< String>),AmbleError> {
     let entry = result?;
@@ -116,19 +116,19 @@ fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
         // Test the various metadata statuses
         let mut meta = "".to_string();
         if access {
-            if report_accessed(&entry, days as u64)? {
+            if report_accessed(&entry, days)? {
                 meta.push('a');
             }
         }
 
         if create {
-            if report_created(&entry, days as u64)? {
+            if report_created(&entry, days)? {
                 meta.push('c');
             };
         }
 
         if modify {
-            if report_modified(&entry, days as u64)? {
+            if report_modified(&entry, days)? {
                 meta.push('m');
             }
         }
@@ -144,21 +144,21 @@ fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
 
 
 // was the entry modified within the last `days` # of days
-fn report_modified(entry: &DirEntry, days: u64) -> Result<bool, AmbleError> {
+fn report_modified(entry: &DirEntry, days: f64) -> Result<bool, AmbleError> {
     let modified = entry.metadata()?.modified()?;
-    Ok(modified.elapsed()?.as_secs() < (SECS_PER_DAY * days as u64))
+    Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days) as u64))
 }
 
 // was the entry accessed iwthint the last `days` # of days
-fn report_accessed(entry: &DirEntry, days: u64) -> Result<bool, AmbleError> {
+fn report_accessed(entry: &DirEntry, days: f64) -> Result<bool, AmbleError> {
     let accessed = entry.metadata().unwrap().accessed()?;
-    Ok(accessed.elapsed()?.as_secs() < (SECS_PER_DAY * days as u64))
+    Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days) as u64))
 }
 
 // was the entry created in the last `days` number of days
-fn report_created(entry: &DirEntry, days: u64) -> Result<bool, AmbleError> {
+fn report_created(entry: &DirEntry, days: f64) -> Result<bool, AmbleError> {
     let created = entry.metadata()?.created()?;
-    Ok(created.elapsed()?.as_secs() < (SECS_PER_DAY * days as u64))
+    Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days) as u64))
 }
 
 fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {

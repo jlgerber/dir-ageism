@@ -42,7 +42,7 @@ fn is_hidden(entry: &DirEntry, check: bool) -> bool {
 impl Finder for SyncSearch {
     fn find_matching(
         start_dir: &Path,
-        days: u8,
+        days: f64,
         access: bool,
         create: bool,
         modify: bool,
@@ -76,19 +76,19 @@ impl Finder for SyncSearch {
 
         let mut meta = "".to_string();
         if access {
-            if report_accessed(&entry, days as u64)? {
+            if report_accessed(&entry, days )? {
                 meta.push('a');
             }
         }
 
         if create {
-            if report_created(&entry, days as u64)? {
+            if report_created(&entry, days)? {
                 meta.push('c');
             };
         }
 
         if modify {
-           if report_modified(&entry, days as u64)? {
+           if report_modified(&entry, days)? {
                meta.push('m');
            }
         }
@@ -104,19 +104,19 @@ impl Finder for SyncSearch {
 }
 
 // was the entry modified within the last `days` # of days
-fn report_modified(entry: &walkdir::DirEntry, days: u64) -> Result<bool, AmbleError> {
+fn report_modified(entry: &walkdir::DirEntry, days: f64) -> Result<bool, AmbleError> {
     let modified = entry.metadata()?.modified()?;
-    Ok(modified.elapsed()?.as_secs() < (SECS_PER_DAY * days as u64))
+    Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days) as u64))
 }
 
 // was the entry accessed iwthint the last `days` # of days
-fn report_accessed(entry: &walkdir::DirEntry, days: u64) -> Result<bool, AmbleError> {
+fn report_accessed(entry: &walkdir::DirEntry, days: f64) -> Result<bool, AmbleError> {
     let accessed = entry.metadata()?.accessed()?;
-    Ok(accessed.elapsed()?.as_secs() < (SECS_PER_DAY * days as u64))
+    Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days) as u64))
 }
 
 // was the entry created in the last `days` number of days
-fn report_created(entry: &walkdir::DirEntry, days: u64) -> Result<bool, AmbleError> {
+fn report_created(entry: &walkdir::DirEntry, days: f64) -> Result<bool, AmbleError> {
     let created = entry.metadata()?.created()?;
-    Ok(created.elapsed()?.as_secs() < (SECS_PER_DAY * days as u64))
+    Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days) as u64))
 }
