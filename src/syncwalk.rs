@@ -48,6 +48,7 @@ impl Finder for SyncSearch {
         modify: bool,
         skip: &Vec<String>, // list of directory names we want to skip
         ignore_hidden: bool,// list of directory names we want to skip
+        _threads: Option<u8>,
     ) -> Result<(), AmbleError> {
         if (access || create || modify) == false {
             println!("No search criteria specified. Must use access, create, or modify");

@@ -19,6 +19,7 @@ impl Finder for AsyncSearch {
         modify: bool,
         skip: &Vec<String>,
         ignore_hidden: bool,// list of directory names we want to skip
+        threads: Option<u8>,
     ) -> Result<(), AmbleError> {
         if (access || create || modify) == false {
             println!("No search criteria specified. Must use access, create, or modify");
@@ -32,10 +33,17 @@ impl Finder for AsyncSearch {
             }
         });
 
-        let walker = WalkBuilder::new(start_dir)
+        let walker = match threads {
+            Some(th) => WalkBuilder::new(start_dir)
             .hidden(ignore_hidden)
-            .threads(0)
-            .build_parallel();
+            .threads(th as usize)
+            .follow_links(true)
+            .build_parallel(),
+            None => WalkBuilder::new(start_dir)
+            .hidden(ignore_hidden)
+            .follow_links(true)
+            .build_parallel(),
+        };
 
         walker.run(|| {
             let tx = tx.clone();
