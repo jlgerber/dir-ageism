@@ -29,15 +29,19 @@ struct Opt {
     #[structopt(short = "c", long = "creation")]
     create: bool,
 
-    // The number of occurrences of the `v/verbose` flag
-    /// Verbose mode (-v, -vv, -vvv, etc.)
-    #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
-    verbose: u8,
+    // // The number of occurrences of the `v/verbose` flag
+    // /// Verbose mode (-v, -vv, -vvv, etc.)
+    // #[structopt(short = "v", long = "verbose", parse(from_occurrences))]
+    // verbose: u8,
 
     /// The time period in days in which to consider entities, based
     /// on the metadata criteria.
     #[structopt(short = "d", long = "days")]
     days: u8,
+
+    /// Optional list of directory names to skip
+    #[structopt(short = "s", long = "skip")]
+    skip: Vec<String>,
 
     /// Files to process
     #[structopt(name = "DIR", parse(from_os_str))]
@@ -63,5 +67,5 @@ fn main() -> Result<(), AmbleError>{
         opt.modify = true;
     }
 
-    find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify)
+    find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip)
 }
