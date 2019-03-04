@@ -10,6 +10,6 @@ pub trait Finder {
         modify: bool,
         skip: &Vec<String>, // list of directory names we want to skip
         ignore_hidden: bool,
-
+        threads: Option<u8>,
     ) -> Result<(), AmbleError>;
 }
