@@ -1,4 +1,10 @@
-use dir_ageism::{ traits::Finder, syncwalk::SyncSearch, asyncwalk::AsyncSearch, errors::AmbleError };
+use dir_ageism::{
+    asyncwalk::AsyncSearch,
+    constants::MIN_DAYS,
+    errors::AmbleError,
+    syncwalk::SyncSearch,
+    traits::Finder,
+};
 
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -35,7 +41,7 @@ struct Opt {
     /// The time period in days in which to consider entities, based
     /// on the metadata criteria
     #[structopt(short = "d", long = "days")]
-    days: f64,
+    days: f32,
 
     /// Optional list of directory names to skip
     #[structopt(short = "s", long = "skip")]
@@ -71,7 +77,7 @@ fn main() -> Result<(), AmbleError>{
         return Ok(());
     }
 
-    if !(opt.days > 0.001) {
+    if !(opt.days > MIN_DAYS) {
         println!("Warning: days must be greater than 0: {}.", opt.days);
         return Ok(());
     }
