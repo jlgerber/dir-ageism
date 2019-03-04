@@ -1,3 +1,7 @@
+//! errors.rs
+//!
+//! Defines AmbleError - the custom error impl for
+//! this crate.
 use failure::Fail;
 
 #[derive(Debug, Fail)]

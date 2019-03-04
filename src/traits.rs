@@ -1,3 +1,7 @@
+//! traits.rs
+//!
+//! Defines the Finder trait, used by syncwalk and asyncwalk
+//! to find the files which match supplied stat metadata
 use std::path::Path;
 use crate::errors::AmbleError;
 

@@ -1,3 +1,11 @@
+//! amble.rs
+//!
+//! Implements the `amble` command, which is used to find files
+//! within a supplied directory which match supplied metadata criteria.
+//!
+//! Specifically, we are looking for files whose create, modify, and/or
+//! update dates fall within a certain number of days, supplied by the
+//! user.
 use dir_ageism::{
     asyncwalk::AsyncSearch,
     constants::MIN_DAYS,
