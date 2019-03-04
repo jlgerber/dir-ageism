@@ -1,12 +1,10 @@
-//! dir-ageism
+//! syncwalk.rs
 //!
-//!
+//! Single threaded traversal of directory usiing the walkdir crate.
+//! This is a bit slower than asyncwalk, but returns results in order.
 use std::path::Path;
 use walkdir::{WalkDir, DirEntry};
-
-const SECS_PER_DAY: u64 = 86400;
-
-use crate::errors::AmbleError;
+use crate::{ errors::AmbleError, constants::SECS_PER_DAY };
 
 // predicate to determine if a directory matches one or more
 // directory names
@@ -29,7 +27,6 @@ fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {
 pub struct SyncSearch {}
 
 use super::traits::Finder;
-
 
 fn is_hidden(entry: &DirEntry, check: bool) -> bool {
     if !check { return false; }

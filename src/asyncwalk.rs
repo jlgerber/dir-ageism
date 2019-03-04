@@ -1,3 +1,17 @@
+//! asyncwalk.rs
+//!
+//! Implementation of asyncronous traversal of directory.
+//! This should be faster than the sync version, with the caveat
+//! that entries will not be returned in order, as we are using
+//! multiple threads to traverse in parallel.
+//!
+//! asyncwalk uses the ignore crate for the parallel directory traversal
+//! iterator, and the crossbeam_channel crate for communication between
+//! threads.
+//!
+//! All results are printed to stdout.
+//!
+//! All errors are printed to stderr.
 use ignore::{WalkBuilder,DirEntry, WalkState};
 use crossbeam_channel as channel;
 use colored::*;
@@ -5,10 +19,9 @@ use std::thread;
 
 use crate::traits::Finder;
 use std::path::Path;
-use crate::errors::AmbleError;
+use crate::{ errors::AmbleError, constants::SECS_PER_DAY };
 
-const SECS_PER_DAY: u64 = 86400;
-
+/// Provides implementation of Finder.
 pub struct AsyncSearch {}
 
 impl Finder for AsyncSearch {
@@ -19,7 +32,7 @@ impl Finder for AsyncSearch {
         create: bool,
         modify: bool,
         skip: &Vec<String>,
-        ignore_hidden: bool,// list of directory names we want to skip
+        ignore_hidden: bool,
         threads: Option<u8>,
     ) -> Result<(), AmbleError> {
         if (access || create || modify) == false {
@@ -56,14 +69,15 @@ impl Finder for AsyncSearch {
 
         let walker = match threads {
             Some(th) => WalkBuilder::new(start_dir)
-            .hidden(ignore_hidden)
-            .threads(th as usize)
-            .follow_links(true)
-            .build_parallel(),
+                                    .hidden(ignore_hidden)
+                                    .threads(th as usize)
+                                    .follow_links(true)
+                                    .build_parallel(),
+
             None => WalkBuilder::new(start_dir)
-            .hidden(ignore_hidden)
-            .follow_links(true)
-            .build_parallel(),
+                                .hidden(ignore_hidden)
+                                .follow_links(true)
+                                .build_parallel(),
         };
 
         walker.run(|| {
