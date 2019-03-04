@@ -28,7 +28,6 @@ struct Opt {
     #[structopt(short = "c", long = "create")]
     create: bool,
 
-
     /// Ignore Hidden Files (that start with ".")
     #[structopt(short = "i", long = "ignore-hidden")]
     ignore: bool,
@@ -41,6 +40,10 @@ struct Opt {
     /// Optional list of directory names to skip
     #[structopt(short = "s", long = "skip")]
     skip: Vec<String>,
+
+    /// Optionally specify how many threads to spawn when using async
+    #[structopt(short = "t", long = "threads")]
+    threads: Option<u8>,
 
     /// Root directory to process. Amble will recursively descend through
     /// the supplied directory, identifying files which meet the provided
@@ -77,8 +80,8 @@ fn main() -> Result<(), AmbleError>{
     }
 
     if opt.sync {
-        SyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore)
+        SyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore, None)
     } else {
-        AsyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore)
+        AsyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore, opt.threads)
     }
 }
