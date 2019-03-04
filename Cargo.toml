@@ -1,6 +1,6 @@
 [package]
 name = "dir-ageism"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["jonathan gerber <jlgerber@gmail.com>"]
 edition = "2018"
 
@@ -14,3 +14,4 @@ structopt = "0.2.14"
 failure = "0.1.5"
 ignore = "0.4.6"
 crossbeam-channel = "0.3.8"
+colored = "1.7.0"
