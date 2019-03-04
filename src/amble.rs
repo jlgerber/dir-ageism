@@ -1,5 +1,4 @@
-use dir_ageism::{find_matching, errors::AmbleError};
-
+use dir_ageism::{ sync::find_matching, errors::AmbleError };
 
 use std::path::PathBuf;
 use structopt::StructOpt;
