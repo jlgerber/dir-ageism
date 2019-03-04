@@ -9,32 +9,32 @@ use structopt::StructOpt;
 ///
 /// If the user does not specify the metadata
 /// properties of interest, amble will use access, modify, and create
-/// times.
+/// times
 #[derive(StructOpt, Debug)]
 #[structopt(name = "amble")]
 struct Opt {
     /// Use access time to determine whether a candidate is
-    /// of interest to us.
+    /// of interest to Amble
     #[structopt(short = "a", long = "access")]
     access: bool,
 
     /// Use modification time to determine whether a candidate is
-    /// of interest to us.
-    #[structopt(short = "m", long = "modification")]
+    /// of interest to Amble
+    #[structopt(short = "m", long = "modify")]
     modify: bool,
 
     /// Use creation time to determine whether a candidate is
-    /// of interest to us.
-    #[structopt(short = "c", long = "creation")]
+    /// of interest to Amble
+    #[structopt(short = "c", long = "create")]
     create: bool,
 
 
-    /// Ignore Hidden Directories
+    /// Ignore Hidden Files (that start with ".")
     #[structopt(short = "i", long = "ignore-hidden")]
     ignore: bool,
 
     /// The time period in days in which to consider entities, based
-    /// on the metadata criteria.
+    /// on the metadata criteria
     #[structopt(short = "d", long = "days")]
     days: u8,
 
@@ -42,11 +42,17 @@ struct Opt {
     #[structopt(short = "s", long = "skip")]
     skip: Vec<String>,
 
-    /// Files to process
+    /// Root directory to process. Amble will recursively descend through
+    /// the supplied directory, identifying files which meet the provided
+    /// criteria, and report them to stdout, along with an indication
+    /// of the matching criteria
     #[structopt(name = "DIR", parse(from_os_str))]
     dir: PathBuf,
 
-    /// Fallback to using sync processing of directories.
+    /// Use single threaded directory traversal. The default behavior is
+    /// to process directories using as many threads as cores.
+    /// However, there is also a syncronous mode, which may be turned
+    /// on for reference
     #[structopt(long = "sync")]
     sync: bool,
 }
