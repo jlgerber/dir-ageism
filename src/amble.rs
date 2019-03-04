@@ -1,4 +1,4 @@
-use dir_ageism::{ sync::find_matching, errors::AmbleError };
+use dir_ageism::{ traits::Finder, syncwalk::SyncSearch, errors::AmbleError };
 
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -66,5 +66,5 @@ fn main() -> Result<(), AmbleError>{
         opt.modify = true;
     }
 
-    find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip)
+    SyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip)
 }

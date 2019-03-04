@@ -26,7 +26,12 @@ fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {
     return false;
 }
 
-pub fn find_matching(
+pub struct SyncSearch {}
+
+use super::traits::Finder;
+
+impl Finder for SyncSearch {
+    fn find_matching(
         start_dir: &Path,
         days: u8,
         access: bool,
@@ -84,6 +89,7 @@ pub fn find_matching(
     }
 
     Ok(())
+}
 }
 
 // was the entry modified within the last `days` # of days
