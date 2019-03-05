@@ -94,7 +94,14 @@ fn main() -> Result<(), AmbleError>{
     // it is all of interest.
     if !(opt.access || opt.create || opt.modify) {
         opt.access = true;
-        opt.create = true;
+        #[cfg(target_os = "macos")]
+        {
+            opt.create = true;
+        }
+        #[cfg(target_os = "linux")]
+        {
+            opt.create = false;
+        }
         opt.modify = true;
     }
 

@@ -125,7 +125,7 @@ impl Finder for AsyncSearch {
 fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
    days: f32, access: bool, create: bool, modify: bool, skip: &Vec<String>, ignore_hidden: bool,
 )
--> Result<(WalkState,Option< String>),AmbleError> {
+-> Result<(WalkState,Option<String>),AmbleError> {
     let entry = result?;
     let entry_type = entry.file_type().unwrap();
 
@@ -154,9 +154,11 @@ fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
         }
 
         if create {
+            #[cfg(target_os = "macos")] {
             if report_created(&entry, days)? {
                 meta.push('c');
             };
+            }
         }
 
         if modify {

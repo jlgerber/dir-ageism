@@ -79,9 +79,11 @@ impl Finder for SyncSearch {
         }
 
         if create {
+            #[cfg(target_os = "macos")] {
             if report_created(&entry, days)? {
                 meta.push('c');
             };
+            }
         }
 
         if modify {
