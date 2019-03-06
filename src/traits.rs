@@ -5,19 +5,11 @@
 //use std::path::Path;
 use crate::errors::AmbleError;
 
-/// Finder trait provies the find_matching method, which should be used
-/// to find matching
+/// Finder trait provies the `find_matching` method, which should be used
+/// to find files matching supplied criteria (presumably on the struct or
+/// enum implementing Finder)
 pub trait Finder {
     type ReturnType;
 
-    fn find_matching(&self
-        // start_dir: &Path,
-        // days: f32,
-        // access: bool,
-        // create: bool,
-        // modify: bool,
-        // skip: &Vec<String>, // list of directory names we want to skip
-        // ignore_hidden: bool,
-        // threads: Option<u8>,
-    ) -> Result<Self::ReturnType, AmbleError>;
+    fn find_matching( &self ) -> Result<Self::ReturnType, AmbleError>;
 }

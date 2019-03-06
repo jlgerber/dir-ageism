@@ -12,14 +12,18 @@
 //! All results are printed to stdout.
 //!
 //! All errors are printed to stderr.
-use ignore::{WalkBuilder,DirEntry, WalkState};
+
+// replacement channel that is more efficient
 use crossbeam_channel as channel;
+// embed color codes in strings
 use colored::*;
+// ignore crate written for ripgrep
+use ignore::{WalkBuilder,DirEntry, WalkState};
+use std::path::PathBuf;
 use std::thread;
 
-use crate::traits::Finder;
-use std::path::PathBuf;
-use crate::{ errors::AmbleError, constants::SECS_PER_DAY };
+// internal imports
+use crate::{ constants::SECS_PER_DAY, errors::AmbleError, traits::Finder };
 
 /// Provides implementation of Finder.
 pub struct AsyncSearch {
@@ -34,7 +38,7 @@ pub struct AsyncSearch {
 }
 
 impl AsyncSearch {
-    /// new up an AsyncSearch instance, passing a pathbuf
+    /// New up an AsyncSearch instance, passing a PathBuf
     pub fn new(start_dir: impl Into<PathBuf>) -> Self {
         Self {
             start_dir: start_dir.into(),
@@ -48,7 +52,7 @@ impl AsyncSearch {
         }
     }
 
-    /// reset the start directory for a search.
+    /// Reset the start directory for a search.
     pub fn start_dir<'a>(&'a mut self, start_dir: impl Into<PathBuf>) -> &'a mut Self {
         self.start_dir = start_dir.into();
         self
@@ -95,6 +99,91 @@ impl AsyncSearch {
     pub fn threads<'a>(&'a mut self, threads: Option<u8>) -> &'a mut Self {
         self.threads = threads;
         self
+    }
+
+    // Process a single entry to determine whether or not it matches criteria.
+    // If it matches, we return an Ok wrapping a tuple of WalkState, Some(path).
+    // If we want to skip an entry, we return Ok wrapping a tuple of WalkState, None.
+    // If there is an error, we return an Err wrrapping AmbleError.
+    fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
+                     days: f32, access: bool, create: bool, modify: bool,
+                     skip: &Vec<String>)
+    -> Result<(WalkState, Option<String>),AmbleError> {
+        let entry = result?;
+        let entry_type = entry.file_type().unwrap();
+
+        // Filter out directory if its name matches one of the provided
+        // names in the skip list.
+        if entry_type.is_dir() {
+            if  skip.len() > 0 && AsyncSearch::matches_list(&entry, &skip) {
+                return Ok((WalkState::Skip, None));
+            }
+        } else if entry_type.is_file() {
+            let f_name = entry.path().to_string_lossy();
+
+            // Test the various metadata statuses
+            let mut meta = "".to_string();
+            if access {
+                if AsyncSearch::report_accessed(&entry, days)? {
+                    meta.push('a');
+                }
+            }
+
+            if create {
+                #[cfg(target_os = "macos")] {
+                if AsyncSearch::report_created(&entry, days)? {
+                    meta.push('c');
+                };
+                }
+            }
+
+            if modify {
+                if AsyncSearch::report_modified(&entry, days)? {
+                    meta.push('m');
+                }
+            }
+
+            if meta.len() > 0 {
+                return Ok((WalkState::Continue, Some( format!("{} ({})", f_name, meta))));
+            }
+            return Ok((WalkState::Continue, None));
+        };
+
+        Ok((WalkState::Continue, None))
+    }
+
+    // was the entry modified within the last `days` # of days
+    fn report_modified(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
+        let modified = entry.metadata()?.modified()?;
+        Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+    }
+
+    // was the entry accessed iwthint the last `days` # of days
+    fn report_accessed(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
+        let accessed = entry.metadata().unwrap().accessed()?;
+        Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+    }
+
+    // was the entry created in the last `days` number of days
+    fn report_created(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
+        let created = entry.metadata()?.created()?;
+        Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+    }
+
+    fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {
+        if list.len() == 0 {
+            return false;
+        }
+
+        for item in list {
+            if entry.file_name()
+                .to_str()
+                .map(|s| s == item)
+                .unwrap_or(false) {
+                    return true;
+                }
+        }
+        return false;
     }
 }
 
@@ -155,11 +244,10 @@ impl Finder for AsyncSearch {
             let access = self.access;
             let create = self.create;
             let modify = self.modify;
-            let ignore_hidden = self.ignore_hidden;
 
             Box::new(move |result| {
-                match process_entry(result, days, access, create,
-                                    modify, &myskip, ignore_hidden ) {
+                match AsyncSearch::process_entry(result, days, access, create,
+                                                 modify, &myskip ) {
                     Ok((state,Some(meta))) => {
                         tx.send(meta).unwrap();
                         state
@@ -190,97 +278,6 @@ impl Finder for AsyncSearch {
 
         Ok(())
     }
-}
-
-// process a single entry to determine whether or not it matches criteria.
-// If it matches, we return an Ok wrapping a tuple of WalkState, Some(path).
-// If we want to skip an entry, we return Ok wrapping a tuple of WalkState, None.
-// If there is an error, we return an Err wrrapping AmbleError.
-fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
-   days: f32, access: bool, create: bool, modify: bool, skip: &Vec<String>, ignore_hidden: bool,
-)
--> Result<(WalkState, Option<String>),AmbleError> {
-    let entry = result?;
-    let entry_type = entry.file_type().unwrap();
-
-    // filter out directory if its name matches one of the provided
-    // names in the skip list.
-    if entry_type.is_dir() {
-        if  skip.len() > 0 && matches_list(&entry, &skip) {
-            return Ok((WalkState::Skip, None));
-        }
-    } else if entry_type.is_file() {
-        let f_name = entry.path().to_string_lossy();
-
-        // do i need this?
-        if ignore_hidden {
-            let f_name = entry.file_name().to_string_lossy();
-            if f_name.starts_with(".") {
-                return Ok((WalkState::Continue, None));
-            }
-        }
-        // Test the various metadata statuses
-        let mut meta = "".to_string();
-        if access {
-            if report_accessed(&entry, days)? {
-                meta.push('a');
-            }
-        }
-
-        if create {
-            #[cfg(target_os = "macos")] {
-            if report_created(&entry, days)? {
-                meta.push('c');
-            };
-            }
-        }
-
-        if modify {
-            if report_modified(&entry, days)? {
-                meta.push('m');
-            }
-        }
-
-        if meta.len() > 0 {
-            return Ok((WalkState::Continue, Some( format!("{} ({})", f_name, meta))));
-        }
-        return Ok((WalkState::Continue, None));
-    };
-
-    Ok((WalkState::Continue, None))
-}
 
 
-// was the entry modified within the last `days` # of days
-fn report_modified(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
-    let modified = entry.metadata()?.modified()?;
-    Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
-}
-
-// was the entry accessed iwthint the last `days` # of days
-fn report_accessed(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
-    let accessed = entry.metadata().unwrap().accessed()?;
-    Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
-}
-
-// was the entry created in the last `days` number of days
-fn report_created(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
-    let created = entry.metadata()?.created()?;
-    Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
-}
-
-fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {
-    if list.len() == 0 {
-        return false;
-    }
-
-    for item in list {
-        if entry.file_name()
-            .to_str()
-            .map(|s| s == item)
-            .unwrap_or(false) {
-                return true;
-            }
-    }
-    return false;
 }
