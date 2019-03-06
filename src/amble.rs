@@ -38,7 +38,7 @@ struct Opt {
     modify: bool,
 
     /// Use creation time to determine whether a candidate is
-    /// of interest to Amble
+    /// of interest to Amble. (NOT AVAILABLE ON LINUX)
     #[structopt(short = "c", long = "create")]
     create: bool,
 
