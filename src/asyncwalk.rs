@@ -18,24 +18,34 @@ use colored::*;
 use std::thread;
 
 use crate::traits::Finder;
-use std::path::Path;
+use std::path::PathBuf;
 use crate::{ errors::AmbleError, constants::SECS_PER_DAY };
 
 /// Provides implementation of Finder.
-pub struct AsyncSearch {}
+pub struct AsyncSearch {
+    start_dir: PathBuf,
+    days: f32,
+    access: bool,
+    create: bool,
+    modify: bool,
+    ignore_hidden: bool,
+    skip: Vec<String>,
+    threads: Option<u8>
+}
 
 impl Finder for AsyncSearch {
-    fn find_matching(
-        start_dir: &Path,
-        days: f32,
-        access: bool,
-        create: bool,
-        modify: bool,
-        skip: &Vec<String>,
-        ignore_hidden: bool,
-        threads: Option<u8>,
-    ) -> Result<(), AmbleError> {
-        if (access || create || modify) == false {
+    type ReturnType = ();
+    fn find_matching(&self
+        // start_dir: &Path,
+        // days: f32,
+        // access: bool,
+        // create: bool,
+        // modify: bool,
+        // skip: &Vec<String>,
+        // ignore_hidden: bool,
+        // threads: Option<u8>,
+    ) -> Result<Self::ReturnType, AmbleError> {
+        if (self.access || self.create || self.modify) == false {
             println!("No search criteria specified. Must use access, create, or modify");
             return Ok(());
         }
@@ -67,15 +77,15 @@ impl Finder for AsyncSearch {
             }
         });
 
-        let walker = match threads {
-            Some(th) => WalkBuilder::new(start_dir)
-                                    .hidden(ignore_hidden)
+        let walker = match self.threads {
+            Some(th) => WalkBuilder::new(&self.start_dir)
+                                    .hidden(self.ignore_hidden)
                                     .threads(th as usize)
                                     .follow_links(true)
                                     .build_parallel(),
 
-            None => WalkBuilder::new(start_dir)
-                                .hidden(ignore_hidden)
+            None => WalkBuilder::new(&self.start_dir)
+                                .hidden(self.ignore_hidden)
                                 .follow_links(true)
                                 .build_parallel(),
         };
@@ -83,9 +93,10 @@ impl Finder for AsyncSearch {
         walker.run(|| {
             let tx = tx.clone();
             let tex = tex.clone();
-            let myskip = skip.clone();
+            let myskip = self.skip.clone();
             Box::new(move |result| {
-                match process_entry(result, days, access, create, modify, &myskip, ignore_hidden ) {
+                match process_entry(result, self.days, self.access, self.create,
+                                    self.modify, &myskip, self.ignore_hidden ) {
                     Ok((state,Some(meta))) => {
                         tx.send(meta).unwrap();
                         state
@@ -125,7 +136,7 @@ impl Finder for AsyncSearch {
 fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
    days: f32, access: bool, create: bool, modify: bool, skip: &Vec<String>, ignore_hidden: bool,
 )
--> Result<(WalkState,Option<String>),AmbleError> {
+-> Result<(WalkState, Option<String>),AmbleError> {
     let entry = result?;
     let entry_type = entry.file_type().unwrap();
 
@@ -168,7 +179,7 @@ fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
         }
 
         if meta.len() > 0 {
-            return Ok((WalkState::Continue,Some( format!("{} ({})", f_name, meta))));
+            return Ok((WalkState::Continue, Some( format!("{} ({})", f_name, meta))));
         }
         return Ok((WalkState::Continue, None));
     };
