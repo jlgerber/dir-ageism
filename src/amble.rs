@@ -90,7 +90,7 @@ fn main() -> Result<(), AmbleError>{
         return Ok(());
     }
 
-    // if the user doesn't specify the metadata of interest, then
+    // If the user doesn't specify the metadata of interest, then
     // it is all of interest.
     if !(opt.access || opt.create || opt.modify) {
         opt.access = true;
@@ -106,8 +106,21 @@ fn main() -> Result<(), AmbleError>{
     }
 
     if opt.sync {
-        SyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore, None)
+        SyncSearch::new(&opt.dir).days(opt.days)
+                                 .access(opt.access)
+                                 .create(opt.create)
+                                 .modify(opt.modify)
+                                 .skip(opt.skip)
+                                 .ignore_hidden(opt.ignore)
+                                 .find_matching()
     } else {
-        AsyncSearch::find_matching(&opt.dir, opt.days, opt.access, opt.create, opt.modify, &opt.skip, opt.ignore, opt.threads)
+        AsyncSearch::new(&opt.dir).days(opt.days)
+                                  .access(opt.access)
+                                  .create(opt.create)
+                                  .modify(opt.modify)
+                                  .skip(opt.skip)
+                                  .ignore_hidden(opt.ignore)
+                                  .threads(opt.threads)
+                                  .find_matching()
     }
 }

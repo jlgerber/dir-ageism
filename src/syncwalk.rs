@@ -2,9 +2,10 @@
 //!
 //! Single threaded traversal of directory usiing the walkdir crate.
 //! This is a bit slower than asyncwalk, but returns results in order.
-use std::path::Path;
+use std::path::PathBuf;
 use walkdir::{WalkDir, DirEntry};
 use crate::{ errors::AmbleError, constants::SECS_PER_DAY };
+use super::traits::Finder;
 
 // predicate to determine if a directory matches one or more
 // directory names
@@ -24,9 +25,73 @@ fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {
     return false;
 }
 
-pub struct SyncSearch {}
+pub struct SyncSearch {
+    start_dir: PathBuf,
+    days: f32,
+    access: bool,
+    create: bool,
+    modify: bool,
+    ignore_hidden: bool,
+    skip: Vec<String>,
+}
 
-use super::traits::Finder;
+impl SyncSearch {
+    pub fn new(start_dir: impl Into<PathBuf>) -> Self {
+        Self {
+            start_dir: start_dir.into(),
+            days: 8.0,
+            access: true,
+            create: true,
+            modify: true,
+            ignore_hidden: true,
+            skip: Vec::new(),
+        }
+    }
+
+    /// reset the start directory for a search.
+    pub fn start_dir<'a>(&'a mut self, start_dir: impl Into<PathBuf>) -> &'a mut Self {
+        self.start_dir = start_dir.into();
+        self
+    }
+    /// Set the number of days to search for.
+    pub fn days<'a>(&'a mut self, days: f32) -> &'a mut Self {
+        self.days = days;
+        self
+    }
+
+    /// Set whether or not we are interested in access time.
+    pub fn access<'a>(&'a mut self, access: bool) -> &'a mut Self {
+        self.access = access;
+        self
+    }
+
+    /// Set whether or not we are interested in creation time.
+    pub fn create<'a>(&'a mut self, create: bool) -> &'a mut Self {
+        self.create = create;
+        self
+    }
+
+    /// Set whether or not we are interested in modification time.
+    pub fn modify<'a>(&'a mut self, modify: bool) -> &'a mut Self {
+        self.modify = modify;
+        self
+    }
+
+
+    /// Set whether or not we should ignore hidden directories by default. Hidden
+    /// directories start with a '.'.
+    pub fn ignore_hidden<'a>(&'a mut self, ignore_hidden: bool) -> &'a mut Self {
+        self.ignore_hidden = ignore_hidden;
+        self
+    }
+
+    /// Set the skip list.
+    pub fn skip<'a>(&'a mut self, skip: Vec<String>) -> &'a mut Self {
+        self.skip = skip;
+        self
+    }
+
+}
 
 fn is_hidden(entry: &DirEntry, check: bool) -> bool {
     if !check { return false; }
@@ -37,27 +102,19 @@ fn is_hidden(entry: &DirEntry, check: bool) -> bool {
          .unwrap_or(false)
 }
 impl Finder for SyncSearch {
-    fn find_matching(
-        start_dir: &Path,
-        days: f32,
-        access: bool,
-        create: bool,
-        modify: bool,
-        skip: &Vec<String>, // list of directory names we want to skip
-        ignore_hidden: bool,// list of directory names we want to skip
-        _threads: Option<u8>,
-    ) -> Result<(), AmbleError> {
-        if (access || create || modify) == false {
+    type ReturnType = ();
+    fn find_matching(&self) -> Result<Self::ReturnType, AmbleError> {
+        if (self.access || self.create || self.modify) == false {
             println!("No search criteria specified. Must use access, create, or modify");
             return Ok(());
         }
 
-    let walker = WalkDir::new(start_dir)
+    let walker = WalkDir::new(&self.start_dir)
             .follow_links(true)
             .into_iter();
 
     for entry in walker
-    .filter_entry(|e| !matches_list(e, skip) || is_hidden(e, ignore_hidden)) {
+    .filter_entry(|e| !matches_list(e, &self.skip) || is_hidden(e, self.ignore_hidden)) {
         // filter out errors (like for permissions)
         let entry = match entry {
             Ok(e) => {
@@ -72,22 +129,22 @@ impl Finder for SyncSearch {
         //if !entry.file_type().is_file() { continue; };
 
         let mut meta = "".to_string();
-        if access {
-            if report_accessed(&entry, days )? {
+        if self.access {
+            if report_accessed(&entry, self.days )? {
                 meta.push('a');
             }
         }
 
-        if create {
+        if self.create {
             #[cfg(target_os = "macos")] {
-            if report_created(&entry, days)? {
+            if report_created(&entry, self.days)? {
                 meta.push('c');
             };
             }
         }
 
-        if modify {
-           if report_modified(&entry, days)? {
+        if self.modify {
+           if report_modified(&entry, self.days)? {
                meta.push('m');
            }
         }

@@ -33,17 +33,74 @@ pub struct AsyncSearch {
     threads: Option<u8>
 }
 
+impl AsyncSearch {
+    /// new up an AsyncSearch instance, passing a pathbuf
+    pub fn new(start_dir: impl Into<PathBuf>) -> Self {
+        Self {
+            start_dir: start_dir.into(),
+            days: 8.0,
+            access: true,
+            create: true,
+            modify: true,
+            ignore_hidden: true,
+            skip: Vec::new(),
+            threads: None,
+        }
+    }
+
+    /// reset the start directory for a search.
+    pub fn start_dir<'a>(&'a mut self, start_dir: impl Into<PathBuf>) -> &'a mut Self {
+        self.start_dir = start_dir.into();
+        self
+    }
+    /// Set the number of days to search for.
+    pub fn days<'a>(&'a mut self, days: f32) -> &'a mut Self {
+        self.days = days;
+        self
+    }
+
+    /// Set whether or not we are interested in access time.
+    pub fn access<'a>(&'a mut self, access: bool) -> &'a mut Self {
+        self.access = access;
+        self
+    }
+
+    /// Set whether or not we are interested in creation time.
+    pub fn create<'a>(&'a mut self, create: bool) -> &'a mut Self {
+        self.create = create;
+        self
+    }
+
+    /// Set whether or not we are interested in modification time.
+    pub fn modify<'a>(&'a mut self, modify: bool) -> &'a mut Self {
+        self.modify = modify;
+        self
+    }
+
+
+    /// Set whether or not we should ignore hidden directories by default. Hidden
+    /// directories start with a '.'.
+    pub fn ignore_hidden<'a>(&'a mut self, ignore_hidden: bool) -> &'a mut Self {
+        self.ignore_hidden = ignore_hidden;
+        self
+    }
+
+    /// Set the skip list.
+    pub fn skip<'a>(&'a mut self, skip: Vec<String>) -> &'a mut Self {
+        self.skip = skip;
+        self
+    }
+
+    /// Set the number of threads
+    pub fn threads<'a>(&'a mut self, threads: Option<u8>) -> &'a mut Self {
+        self.threads = threads;
+        self
+    }
+}
+
 impl Finder for AsyncSearch {
     type ReturnType = ();
     fn find_matching(&self
-        // start_dir: &Path,
-        // days: f32,
-        // access: bool,
-        // create: bool,
-        // modify: bool,
-        // skip: &Vec<String>,
-        // ignore_hidden: bool,
-        // threads: Option<u8>,
     ) -> Result<Self::ReturnType, AmbleError> {
         if (self.access || self.create || self.modify) == false {
             println!("No search criteria specified. Must use access, create, or modify");
@@ -94,9 +151,15 @@ impl Finder for AsyncSearch {
             let tx = tx.clone();
             let tex = tex.clone();
             let myskip = self.skip.clone();
+            let days = self.days;
+            let access = self.access;
+            let create = self.create;
+            let modify = self.modify;
+            let ignore_hidden = self.ignore_hidden;
+
             Box::new(move |result| {
-                match process_entry(result, self.days, self.access, self.create,
-                                    self.modify, &myskip, self.ignore_hidden ) {
+                match process_entry(result, days, access, create,
+                                    modify, &myskip, ignore_hidden ) {
                     Ok((state,Some(meta))) => {
                         tx.send(meta).unwrap();
                         state
