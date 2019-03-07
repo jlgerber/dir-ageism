@@ -25,7 +25,35 @@ use std::thread;
 // internal imports
 use crate::{ constants::SECS_PER_DAY, errors::AmbleError, traits::Finder };
 
-/// Provides implementation of Finder.
+/// Provides implementation of Finder trait via AsyncSearch struct.
+/// AsyncSearch implements a builder pattern to make it more convenient
+/// to set the various options, but comes with reasonable defaults.
+///
+/// The only struct field which needs to be initialized is the start_dir,
+/// which is set in the `new` function. All of the other fields have
+/// corresponding builder functions which take a parameter of the
+/// matchinh type and return a mutable reference to Self.
+///
+/// # Example
+///
+/// ```rust
+/// # use std::error::Error;
+/// #
+/// # fn main() -> Result<(), Box<Error>> {
+/// use std::path::PathBuf;
+/// use dir_ageism::{asyncwalk::AsyncSearch, traits::Finder};
+///
+/// let matching = AsyncSearch::new("./")
+///     .days(1.0)
+///     .access(true)
+///     .ignore_hidden(true)
+///     .threads(Some(6))
+///     .find_matching();
+///
+/// #
+/// #     Ok(())
+/// # }
+/// ```
 pub struct AsyncSearch {
     start_dir: PathBuf,
     days: f32,

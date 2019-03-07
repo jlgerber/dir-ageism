@@ -12,6 +12,34 @@ use super::traits::Finder;
 /// directory tree for files whose access, create, and/or modify
 /// metadata values are less than or equal to the supplied age in
 /// days, or fraction thereof.
+///
+/// SyncSearch implements a builder pattern to make it more convenient
+/// to set the various options, but comes with reasonable defaults.
+///
+/// The only struct field which needs to be initialized is the start_dir,
+/// which is set in the `new` function. All of the other fields have
+/// corresponding builder functions which take a parameter of the
+/// matchinh type and return a mutable reference to Self.
+///
+/// # Example
+///
+/// ```rust
+/// # use std::error::Error;
+/// #
+/// # fn main() -> Result<(), Box<Error>> {
+/// use std::path::PathBuf;
+/// use dir_ageism::{syncwalk::SyncSearch, traits::Finder};
+///
+/// let matching = SyncSearch::new("./")
+///     .days(1.0)
+///     .access(true)
+///     .ignore_hidden(true)
+///     .find_matching();
+///
+/// #
+/// #     Ok(())
+/// # }
+/// ```
 pub struct SyncSearch {
     /// The root directory to search
     start_dir: PathBuf,
