@@ -41,7 +41,7 @@ use crate::{ constants::SECS_PER_DAY, errors::AmbleError, traits::Finder };
 /// #
 /// # fn main() -> Result<(), Box<Error>> {
 /// use std::path::PathBuf;
-/// use dir_ageism::{asyncwalk::AsyncSearch, traits::Finder};
+/// use amble::{asyncwalk::AsyncSearch, traits::Finder};
 ///
 /// let matching = AsyncSearch::new("./")
 ///     .days(1.0)

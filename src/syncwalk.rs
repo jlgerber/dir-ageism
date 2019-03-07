@@ -28,7 +28,7 @@ use super::traits::Finder;
 /// #
 /// # fn main() -> Result<(), Box<Error>> {
 /// use std::path::PathBuf;
-/// use dir_ageism::{syncwalk::SyncSearch, traits::Finder};
+/// use amble::{syncwalk::SyncSearch, traits::Finder};
 ///
 /// let matching = SyncSearch::new("./")
 ///     .days(1.0)
