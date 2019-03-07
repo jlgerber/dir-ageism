@@ -56,43 +56,43 @@ impl SyncSearch {
     }
 
     /// reset the start directory for a search.
-    pub fn start_dir<'a>(&'a mut self, start_dir: impl Into<PathBuf>) -> &'a mut Self {
+    pub fn start_dir(&mut self, start_dir: impl Into<PathBuf>) -> &mut Self {
         self.start_dir = start_dir.into();
         self
     }
     /// Set the number of days to search for.
-    pub fn days<'a>(&'a mut self, days: f32) -> &'a mut Self {
+    pub fn days(&mut self, days: f32) -> &mut Self {
         self.days = days;
         self
     }
 
     /// Set whether or not we are interested in access time.
-    pub fn access<'a>(&'a mut self, access: bool) -> &'a mut Self {
+    pub fn access(&mut self, access: bool) -> &mut Self {
         self.access = access;
         self
     }
 
     /// Set whether or not we are interested in creation time.
-    pub fn create<'a>(&'a mut self, create: bool) -> &'a mut Self {
+    pub fn create(&mut self, create: bool) -> &mut Self {
         self.create = create;
         self
     }
 
     /// Set whether or not we are interested in modification time.
-    pub fn modify<'a>(&'a mut self, modify: bool) -> &'a mut Self {
+    pub fn modify(&mut self, modify: bool) -> &mut Self {
         self.modify = modify;
         self
     }
 
     /// Set whether or not we should ignore hidden directories by default. Hidden
     /// directories start with a '.'.
-    pub fn ignore_hidden<'a>(&'a mut self, ignore_hidden: bool) -> &'a mut Self {
+    pub fn ignore_hidden(&mut self, ignore_hidden: bool) -> &mut Self {
         self.ignore_hidden = ignore_hidden;
         self
     }
 
     /// Set the skip list.
-    pub fn skip<'a>(&'a mut self, skip: Vec<String>) -> &'a mut Self {
+    pub fn skip(&mut self, skip: Vec<String>) -> &mut Self {
         self.skip = skip;
         self
     }
@@ -100,36 +100,35 @@ impl SyncSearch {
     // Was the entry modified within the last `self.days` # of days?
     fn report_modified(entry: &walkdir::DirEntry, days: f32) -> Result<bool, AmbleError> {
         let modified = entry.metadata()?.modified()?;
-        Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+        Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * f64::from(days)).ceil() as u64))
     }
 
     // Was the entry accessed iwthint the last `self.days` # of days?
     fn report_accessed(entry: &walkdir::DirEntry, days: f32) -> Result<bool, AmbleError> {
         let accessed = entry.metadata()?.accessed()?;
-        Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+        Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * f64::from(days)).ceil() as u64))
     }
 
     // Was the entry created in the last `self.days` number of days?
     fn report_created(entry: &walkdir::DirEntry, days: f32) -> Result<bool, AmbleError> {
         let created = entry.metadata()?.created()?;
-        Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+        Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * f64::from(days)).ceil() as u64))
     }
 
     // is the DirEntry hidden? If check is false, we dont bother
     // actually checking; instead we automatically return false.
     fn is_hidden(entry: &DirEntry, check: bool) -> bool {
         if !check { return false; }
-        let result = entry.file_name()
+        entry.file_name()
             .to_str()
-            .map(|s| s.starts_with(".")&& s != "./")
-            .unwrap_or(false);
-        result
+            .map(|s| s.starts_with('.') && s != "./")
+            .unwrap_or(false)
     }
 
     // predicate to determine if a directory matches one or more
     // directory names
-    fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {
-        if list.len() == 0 {
+    fn matches_list(entry: &DirEntry, list: &[String] ) -> bool {
+        if list.is_empty() {
             return false;
         }
 
@@ -141,7 +140,8 @@ impl SyncSearch {
                     return true;
                 }
         }
-        return false;
+
+        false
     }
 }
 
@@ -150,7 +150,7 @@ impl Finder for SyncSearch {
     type ReturnType = ();
 
     fn find_matching(&self) -> Result<Self::ReturnType, AmbleError> {
-        if (self.access || self.create || self.modify) == false {
+        if !(self.access || self.create || self.modify) {
             println!("No search criteria specified. Must use access, create, or modify");
             return Ok(());
         }
@@ -178,10 +178,9 @@ impl Finder for SyncSearch {
             // doing this roughly in code above.
             //if !entry.file_type().is_file() { continue; };
             let mut meta = "".to_string();
-            if self.access {
-                if SyncSearch::report_accessed(&entry, self.days )? {
+            if self.access && SyncSearch::report_accessed(&entry, self.days )? {
                     meta.push('a');
-                }
+
             }
 
             if self.create {
@@ -192,13 +191,12 @@ impl Finder for SyncSearch {
                 }
             }
 
-            if self.modify {
-                if SyncSearch::report_modified(&entry, self.days)? {
+            if self.modify && SyncSearch::report_modified(&entry, self.days)? {
                     meta.push('m');
-                }
+
             }
 
-            if meta.len() > 0 {
+            if !meta.is_empty() {
                 let f_name = entry.path().to_string_lossy();
                 println!("{} ({})", f_name, meta);
             }

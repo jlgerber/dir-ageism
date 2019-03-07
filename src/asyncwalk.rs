@@ -53,30 +53,30 @@ impl AsyncSearch {
     }
 
     /// Reset the start directory for a search.
-    pub fn start_dir<'a>(&'a mut self, start_dir: impl Into<PathBuf>) -> &'a mut Self {
+    pub fn start_dir(&mut self, start_dir: impl Into<PathBuf>) -> &mut Self {
         self.start_dir = start_dir.into();
         self
     }
     /// Set the number of days to search for.
-    pub fn days<'a>(&'a mut self, days: f32) -> &'a mut Self {
+    pub fn days(&mut self, days: f32) -> &mut Self {
         self.days = days;
         self
     }
 
     /// Set whether or not we are interested in access time.
-    pub fn access<'a>(&'a mut self, access: bool) -> &'a mut Self {
+    pub fn access(&mut self, access: bool) -> &mut Self {
         self.access = access;
         self
     }
 
     /// Set whether or not we are interested in creation time.
-    pub fn create<'a>(&'a mut self, create: bool) -> &'a mut Self {
+    pub fn create(&mut self, create: bool) -> &mut Self {
         self.create = create;
         self
     }
 
     /// Set whether or not we are interested in modification time.
-    pub fn modify<'a>(&'a mut self, modify: bool) -> &'a mut Self {
+    pub fn modify(&mut self, modify: bool) -> &mut Self {
         self.modify = modify;
         self
     }
@@ -84,19 +84,19 @@ impl AsyncSearch {
 
     /// Set whether or not we should ignore hidden directories by default. Hidden
     /// directories start with a '.'.
-    pub fn ignore_hidden<'a>(&'a mut self, ignore_hidden: bool) -> &'a mut Self {
+    pub fn ignore_hidden(&mut self, ignore_hidden: bool) -> &mut Self {
         self.ignore_hidden = ignore_hidden;
         self
     }
 
     /// Set the skip list.
-    pub fn skip<'a>(&'a mut self, skip: Vec<String>) -> &'a mut Self {
+    pub fn skip(&mut self, skip: Vec<String>) -> &mut Self {
         self.skip = skip;
         self
     }
 
     /// Set the number of threads
-    pub fn threads<'a>(&'a mut self, threads: Option<u8>) -> &'a mut Self {
+    pub fn threads(&mut self, threads: Option<u8>) -> &mut Self {
         self.threads = threads;
         self
     }
@@ -107,7 +107,7 @@ impl AsyncSearch {
     // If there is an error, we return an Err wrrapping AmbleError.
     fn process_entry(result: std::result::Result<ignore::DirEntry, ignore::Error>,
                      days: f32, access: bool, create: bool, modify: bool,
-                     skip: &Vec<String>)
+                     skip: &[String])
     -> Result<(WalkState, Option<String>),AmbleError> {
         let entry = result?;
         let entry_type = entry.file_type().unwrap();
@@ -115,7 +115,7 @@ impl AsyncSearch {
         // Filter out directory if its name matches one of the provided
         // names in the skip list.
         if entry_type.is_dir() {
-            if  skip.len() > 0 && AsyncSearch::matches_list(&entry, &skip) {
+            if  !skip.is_empty() && AsyncSearch::matches_list(&entry, &skip) {
                 return Ok((WalkState::Skip, None));
             }
         } else if entry_type.is_file() {
@@ -123,10 +123,9 @@ impl AsyncSearch {
 
             // Test the various metadata statuses
             let mut meta = "".to_string();
-            if access {
-                if AsyncSearch::report_accessed(&entry, days)? {
-                    meta.push('a');
-                }
+            if access && AsyncSearch::report_accessed(&entry, days)? {
+                meta.push('a');
+
             }
 
             if create {
@@ -137,13 +136,12 @@ impl AsyncSearch {
                 }
             }
 
-            if modify {
-                if AsyncSearch::report_modified(&entry, days)? {
-                    meta.push('m');
-                }
+            if modify && AsyncSearch::report_modified(&entry, days)? {
+                meta.push('m');
+
             }
 
-            if meta.len() > 0 {
+            if !meta.is_empty() {
                 return Ok((WalkState::Continue, Some( format!("{} ({})", f_name, meta))));
             }
             return Ok((WalkState::Continue, None));
@@ -155,23 +153,23 @@ impl AsyncSearch {
     // was the entry modified within the last `days` # of days
     fn report_modified(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
         let modified = entry.metadata()?.modified()?;
-        Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+        Ok(modified.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * f64::from(days)).ceil() as u64))
     }
 
     // was the entry accessed iwthint the last `days` # of days
     fn report_accessed(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
         let accessed = entry.metadata().unwrap().accessed()?;
-        Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+        Ok(accessed.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * f64::from(days)).ceil() as u64))
     }
 
     // was the entry created in the last `days` number of days
     fn report_created(entry: &DirEntry, days: f32) -> Result<bool, AmbleError> {
         let created = entry.metadata()?.created()?;
-        Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * days as f64).ceil() as u64))
+        Ok(created.elapsed()?.as_secs() < ((SECS_PER_DAY as f64 * f64::from(days)).ceil() as u64))
     }
 
-    fn matches_list(entry: &DirEntry, list: &Vec<String> ) -> bool {
-        if list.len() == 0 {
+    fn matches_list(entry: &DirEntry, list: &[String] ) -> bool {
+        if !list.is_empty() {
             return false;
         }
 
@@ -183,7 +181,7 @@ impl AsyncSearch {
                     return true;
                 }
         }
-        return false;
+        false
     }
 }
 
@@ -191,7 +189,7 @@ impl Finder for AsyncSearch {
     type ReturnType = ();
     fn find_matching(&self
     ) -> Result<Self::ReturnType, AmbleError> {
-        if (self.access || self.create || self.modify) == false {
+        if !(self.access || self.create || self.modify) {
             println!("No search criteria specified. Must use access, create, or modify");
             return Ok(());
         }
