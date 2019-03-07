@@ -194,10 +194,12 @@ impl Finder for AsyncSearch {
             return Ok(());
         }
         // for stdout
-        let (tx, rx) = channel::bounded::<String>(100);
+        //let (tx, rx) = channel::bounded::<String>(100);
+        let (tx, rx) = channel::unbounded::<String>();
 
         // for errors
-        let (tex, rex) = channel::bounded::<String>(100);
+        //let (tex, rex) = channel::bounded::<String>(100);
+        let (tex, rex) = channel::unbounded::<String>();
 
         let stdout_thread = thread::spawn(move || {
             for dent in rx {
